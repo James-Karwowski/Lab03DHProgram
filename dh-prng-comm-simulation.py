@@ -1,43 +1,4 @@
 import hashlib
-import os
-
-class SecurePRNG:
-  # Required methods for the PRNG go here
-  def __init__(self, seed):
-    # Initialize 32-byte state using SHA-256 of the DH secret
-    self.state = hashlib.sha256(str(seed).encode()).digest()
-
-  def generate(self, n_value):
-    keystream = b""
-    while len(keystream < n_value):
-      # Hash current state to produce output
-      output = hashlib.sha256(self.state).digest()
-      keystream += output
-      # Rollback Resistance: Update state with a new hash
-      self.state = hashlib.sha256(output + self.state).digest()
-    return keystream[n_value]
-
-  def stream_cipher(message_in_bytes, prng):
-    keystream = prng.generate(len(message_bytes))
-    return bytes([b ^ k for b, k in zip(message_bytes, keystream)])
-
-class Entity:
-  # Required methods for Entity go here
-
-class Attacker:
-  # Required methods for Mallory (the attacker) go here
-
-class Network:
-  # Required methods to simulate the Network go here
-
-def run_prng_sim(is_mitm_scenario=False):
-  # Main method for running the simulations
-  
-if __name__ == "__main__":
-  run_prng_sim(is_mitm_scenario=False)
-  run_prng_sim(is_mitm_scenario=True)
-
-import hashlib
 import secrets
 import os
 # --- UI HELPER FUNCTIONS ---
@@ -66,6 +27,7 @@ G = 2
 class SecurePRNG:
   def __init__(self, seed_int):
     # TODO: Initalize the SecurePRNG with the shared secret (seed_int) calculated from Diffie-Hellman key exchange.
+  
   def generate(self, n_bytes):
     # TODO: Generates n bytes while ensuring Rollback Resistance.
     output = b""
@@ -85,6 +47,7 @@ class Entity:
     self.private_key =
     self.public_key =
     self.session_prng = None
+  
   def get_public_hex(self):
     return hex(self.public_key)
     
@@ -95,8 +58,7 @@ class Entity:
     self.session_prng = SecurePRNG(shared_secret)
 
 # --- DO NOT MODIFY THIS CLASS --- #
-# This class simulates the network and allows for an interceptor 'hook' (Mallory)
-to manipulate messages in transit.
+# This class simulates the network and allows for an interceptor 'hook' (Mallory) to manipulate messages in transit.
 class Network:
   def __init__(self):
     self.mallory = None # The interceptor 'hook'
@@ -120,23 +82,19 @@ class Mallory:
   def intercept(self, sender, recipient, payload):
     # 1. Implement Logic for Key Exchange Interception
     if isinstance(payload, str) and payload.startswith("0x"):
-    remote_pub = int(payload, 16)
-    my_shared_secret = pow(remote_pub, self.private_key, P)
+      remote_pub = int(payload, 16)
+      my_shared_secret = pow(remote_pub, self.private_key, P)
     # TODO: If the sender is alice, generate a session PRNG with Alice.
     # If the sender is Bob, generate a session PRNG with Bob.
-    return self.public_hex # Return Mallory's key instead to generate
-    session PRNGs with Alice and Bob
+      return self.public_hex # Return Mallory's key instead to generate session PRNGs with Alice and Bob
     # 2. Implement Logic for Message Interception/Modification
     if isinstance(payload, bytes):
-    print(f"[MALLORY] Intercepting Encrypted Message from {sender}...")
-    # TODO: Decrypt the message using the appropriate session PRNG (Hint:
-    Alice is the sender)
-    # Print the plaintext message to the console for Mallory's spying
-    purposes.
+      print(f"[MALLORY] Intercepting Encrypted Message from {sender}...")
+    # TODO: Decrypt the message using the appropriate session PRNG (Hint: Alice is the sender)
+    # Print the plaintext message to the console for Mallory's spying purposes.
     # Modify the plaintext message in some way
-    # Then use the PRNG shared with bob to re-encrypt and return the
-    message for Bob
-return payload
+    # Then use the PRNG shared with bob to re-encrypt and return the message for Bob
+    return payload
 
 # --- DO NOT MODIFY THIS FUNCTION --- #
 # --- MAIN EXECUTION SIMULATION ---

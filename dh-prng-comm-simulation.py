@@ -94,7 +94,7 @@ class Mallory:
       my_shared_secret = pow(remote_pub, self.private_key, P)
     # TODO: If the sender is alice, generate a session PRNG with Alice.
     # If the sender is Bob, generate a session PRNG with Bob.
-      if (sendeer == "Alice"){
+      if (sender == "Alice"){
         self.alice_prng = SecurePRNG(shared_secret)
       }elif (sender = "Bob"){
         self.bob_prng = SecurePRNG(shared_secret)

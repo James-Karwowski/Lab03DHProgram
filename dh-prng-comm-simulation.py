@@ -74,7 +74,7 @@ class Network:
   def send(self, sender, recipient, payload):
     print(f"[NET] {sender} -> {recipient}: {str(payload)[:60]}...")
     if self.mallory:
-    return self.mallory.intercept(sender, recipient, payload)
+        return self.mallory.intercept(sender, recipient, payload)
     return payload
 
 # --- PART C: THE MALLORY MITM PROXY ---
@@ -91,14 +91,13 @@ class Mallory:
     # 1. Implement Logic for Key Exchange Interception
     if isinstance(payload, str) and payload.startswith("0x"):
       remote_pub = int(payload, 16)
-      my_shared_secret = pow(remote_pub, self.private_key, P)
+      shared_secret = pow(remote_pub, self.private_key, P)
     # TODO: If the sender is alice, generate a session PRNG with Alice.
     # If the sender is Bob, generate a session PRNG with Bob.
-      if (sender == "Alice"){
+      if sender == "Alice":
         self.alice_prng = SecurePRNG(shared_secret)
-      }elif (sender = "Bob"){
+      elif sender == "Bob":
         self.bob_prng = SecurePRNG(shared_secret)
-      }
       return self.public_hex # Return Mallory's key instead to generate session PRNGs with Alice and Bob
     
     # 2. Implement Logic for Message Interception/Modification
@@ -108,10 +107,10 @@ class Mallory:
     # Print the plaintext message to the console for Mallory's spying purposes.
     # Modify the plaintext message in some way
     # Then use the PRNG shared with bob to re-encrypt and return the message for Bob
-      plaintext = xor_crypt(payload, self.alice_prng)
+      plaintext = SecurePRNG.xor_crypt(payload, self.alice_prng)
       print_info("Mallort spied", plaintext.decode())
       modified_text = plaintext.replace(b"9am", b"3am")
-      return xor_crypt(modified_text, self.bob_prng)
+      return SecurePRNG.xor_crypt(modified_text, self.bob_prng)
     return payload
 
 # --- DO NOT MODIFY THIS FUNCTION --- #
@@ -148,9 +147,9 @@ def main():
   print(" [Status]: Shared Secret computed: S = B^a mod P = A^b mod P")
   print_step("Step 3: Secure Message Transmission")
   message = b"We need to talk. Meet me at the park around 9am." # Put in your test message here
-  encrypted_msg = xor_crypt(message, alice.session_prng)
+  encrypted_msg = SecurePRNG.xor_crypt(message, alice.session_prng)
   delivered_data = net.send("Alice", "Bob", encrypted_msg)
-  final_message = xor_crypt(delivered_data, bob.session_prng)
+  final_message = SecurePRNG.xor_crypt(delivered_data, bob.session_prng)
   print_info("Bob decrypted", final_message.decode())
 
   # ==========================================
@@ -182,9 +181,9 @@ def main():
   print(" [Bob Session]: S_bm = (Mallory_Pub)^b mod P")
   print_step("Step 4: Interception")
   message = b"Meet me at 9pm."
-  encrypted_msg = xor_crypt(message, alice.session_prng)
+  encrypted_msg = SecurePRNG.xor_crypt(message, alice.session_prng)
   delivered_data = net.send("Alice", "Bob", encrypted_msg)
-  final_message = xor_crypt(delivered_data, bob.session_prng)
+  final_message = SecurePRNG.xor_crypt(delivered_data, bob.session_prng)
   print_info("Bob received", final_message.decode())
   if b"3am" in final_message:
     print("\n[DANGER] MITM SUCCESS: Mallory used her private key (m) to decrypt and re-encrypt.")

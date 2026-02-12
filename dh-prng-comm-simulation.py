@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 import os
+
 # --- UI HELPER FUNCTIONS ---
 def print_header(text):
   print(f"\n{'='*60}\n{text}\n{'='*60}")
@@ -8,6 +9,7 @@ def print_step(text):
   print(f"\n>> {text}")
 def print_info(label, value):
   print(f" [{label}]: {str(value)[:70]}...")
+  
 # --- Define Diffie-Hellman Constants G and P ---
 P = int("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"
 "29024E088A67CC74020BBEA63B139B22514A08798E3404DD"
@@ -27,25 +29,31 @@ G = 2
 class SecurePRNG:
   def __init__(self, seed_int):
     # TODO: Initalize the SecurePRNG with the shared secret (seed_int) calculated from Diffie-Hellman key exchange.
+    self.state = hashlib.sha256(str(seed_int).encode()).digest()
   
   def generate(self, n_bytes):
     # TODO: Generates n bytes while ensuring Rollback Resistance.
     output = b""
     while len(output) < n_bytes:
       # 1. Produce keystream block from current state
+      block = hashlib.sha256(self.state).digest()
+      output += block
       # 2. Update state immediately after with a hash function (One-way progression)
+      self.state = hashlib.sha256(block).digest()
     return output[:n_bytes]
     
   def xor_crypt(data, prng):
     # TODO: Implement Simple XOR stream cipher logic.
+    keystream = prng.generate(len(data))
+    return bytes(a ^ b for a, b in zip(data, keystream))
 
     # --- PART B: COMMUNICATION PROTOCOL ---
 class Entity:
   # TODO: Calculate public and private keys with global P and G.
   def __init__(self, name):
     self.name = name
-    self.private_key =
-    self.public_key =
+    self.private_key = secrets.randbelow(P-1) + 1
+    self.public_key = pow(G, self.private_key, P)
     self.session_prng = None
   
   def get_public_hex(self):
@@ -53,8 +61,8 @@ class Entity:
     
   # TODO: calculate and initialize shared secret with SecurePRNG
   def establish_session(self, partner_pub_hex):
-    partner_pub =
-    shared_secret =
+    partner_pub = int(partner_pub_hex, 16)
+    shared_secret = pow(partner_pub, self.private_key, P)
     self.session_prng = SecurePRNG(shared_secret)
 
 # --- DO NOT MODIFY THIS CLASS --- #
@@ -73,8 +81,8 @@ class Network:
 # Implement logic for Mallory
 class Mallory:
   def __init__(self):
-    self.private_key =
-    self.public_hex =
+    self.private_key = secrets.randbelow(P-1) + 1
+    self.public_hex = hex(pow(G, self.private_key, P))
     # Mallory maintains TWO sessions
     self.alice_prng = None
     self.bob_prng = None
@@ -86,7 +94,13 @@ class Mallory:
       my_shared_secret = pow(remote_pub, self.private_key, P)
     # TODO: If the sender is alice, generate a session PRNG with Alice.
     # If the sender is Bob, generate a session PRNG with Bob.
+      if (sendeer == "Alice"){
+        self.alice_prng = SecurePRNG(shared_secret)
+      }elif (sender = "Bob"){
+        self.bob_prng = SecurePRNG(shared_secret)
+      }
       return self.public_hex # Return Mallory's key instead to generate session PRNGs with Alice and Bob
+    
     # 2. Implement Logic for Message Interception/Modification
     if isinstance(payload, bytes):
       print(f"[MALLORY] Intercepting Encrypted Message from {sender}...")
@@ -94,6 +108,10 @@ class Mallory:
     # Print the plaintext message to the console for Mallory's spying purposes.
     # Modify the plaintext message in some way
     # Then use the PRNG shared with bob to re-encrypt and return the message for Bob
+      plaintext = xor_crypt(payload, self.alice_prng)
+      print_info("Mallort spied", plaintext.decode())
+      modified_text = plaintext.replace(b"9am", b"3am")
+      return xor_crypt(modified_text, self.bob_prng)
     return payload
 
 # --- DO NOT MODIFY THIS FUNCTION --- #
@@ -106,6 +124,7 @@ def main():
   alice = Entity("Alice")
   bob = Entity("Bob")
   net = Network()
+
   # Display Group Parameters
   print_step("Step 0: Global Group Parameters")
   print_info("G (Generator)", G)
@@ -113,10 +132,12 @@ def main():
   print_step("Step 1: Public Key Exchange")
   print_info("Alice Private (a)", alice.private_key)
   print_info("Bob Private (b)", bob.private_key)
+
   # Alice -> Bob
   alice_pub = alice.get_public_hex()
   print_info("Alice Public (A = G^a mod P)", alice_pub)
   key_for_bob = net.send("Alice", "Bob", alice_pub)
+
   # Bob -> Alice
   bob_pub = bob.get_public_hex()
   print_info("Bob Public (B = G^b mod P)", bob_pub)
@@ -126,11 +147,12 @@ def main():
   bob.establish_session(key_for_bob)
   print(" [Status]: Shared Secret computed: S = B^a mod P = A^b mod P")
   print_step("Step 3: Secure Message Transmission")
-  message = b"<INPUT YOUR MESSAGE HERE>" # Put in your test message here
+  message = b"We need to talk. Meet me at the park around 9am." # Put in your test message here
   encrypted_msg = xor_crypt(message, alice.session_prng)
   delivered_data = net.send("Alice", "Bob", encrypted_msg)
   final_message = xor_crypt(delivered_data, bob.session_prng)
   print_info("Bob decrypted", final_message.decode())
+
   # ==========================================
   # SCENARIO B: MALICIOUS (MITM) ATTACK
   # ==========================================
@@ -144,6 +166,7 @@ def main():
   print_info("Mallory Private (m)", mallory.private_key)
   print_info("Mallory Public (M)", mallory.public_hex)
   print_step("Step 2: Compromised Key Exchange")
+
   # Alice sends A -> Mallory Intercepts -> Returns M to Alice
   # Bob sends B -> Mallory Intercepts -> Returns M to Bob
   print("Alice sending key to Bob...")
@@ -153,6 +176,7 @@ def main():
   print_step("Step 3: Poisoned Shared Secrets")
   alice.establish_session(key_for_alice)
   bob.establish_session(key_for_bob)
+
   # Note: Alice's session uses S1 = M^a, Bob's uses S2 = M^b. Mallory knows both.
   print(" [Alice Session]: S_am = (Mallory_Pub)^a mod P")
   print(" [Bob Session]: S_bm = (Mallory_Pub)^b mod P")
